@@ -39,9 +39,9 @@ const plan = await agent(`You are the graphic designer. Follow engineering-pract
 if (!plan) return 'blocked: planning failed'
 if (plan.master_art === 'missing') return 'blocked: no master key art; run the visual-identity and store-and-marketing-art skills to make one first'
 
-const specs = await parallel(stores.map(s => () => agent(`Follow the graphic-designer store-and-marketing-art skill step 1 for ${s}. Open the store's own official developer or partner documentation (never a blog) and list every icon, listing graphic and screenshot asset with size, format, alpha, count and content rules. Compare with ${plan.spec_table} and skills/store-and-marketing-art/specs.md of this plugin; list what changed. Do not edit any file. Return source URLs and today's check date as you see it.`, { schema: SPEC, phase: 'Plan', label: `spec:${s}` })))
+const specs = (await parallel(stores.map(s => () => agent(`Follow the graphic-designer store-and-marketing-art skill step 1 for ${s}. Open the store's own official developer or partner documentation (never a blog) and list every icon, listing graphic and screenshot asset with size, format, alpha, count and content rules. Compare with ${plan.spec_table} and skills/store-and-marketing-art/specs.md of this plugin; list what changed. Do not edit any file. Return source URLs and today's check date as you see it.`, { schema: SPEC, phase: 'Plan', label: `spec:${s}` })))).map((sp, i) => sp ? { ...sp, store: stores[i] } : null)
 const verified = specs.filter(Boolean)
-const unverified = stores.filter(s => !verified.some(v => v.store === s))
+const unverified = stores.filter((s, i) => !specs[i])
 if (unverified.length) log(`spec not verified for: ${unverified.join(', ')}`)
 if (!verified.length) return { status: 'blocked', reason: 'no store spec could be verified', unverified }
 

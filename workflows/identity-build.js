@@ -38,6 +38,7 @@ const plan = await agent(`You are the graphic designer for ${product}. Follow en
 if (!plan) return 'blocked: planning failed (no brief or research returned)'
 
 let chosen
+let pendingProvenance = ''
 if (args && args.direction !== undefined && args.direction !== null && args.direction !== '') {
   chosen = { index: Number(args.direction), rationale: 'Direction approved by the requester.' }
   log(`using approved direction ${chosen.index}`)
@@ -50,11 +51,11 @@ if (args && args.direction !== undefined && args.direction !== null && args.dire
   if (!choice) return 'blocked: no direction chosen; directions are in ' + plan.design_dir + '/directions/'
   chosen = choice
   const provenance = good.map(d => (d.provenance_lines || []).join('\n')).filter(Boolean).join('\n')
-  if (provenance) await agent(`Add these lines to the project's provenance log in one edit, keeping its format:\n${provenance}`, { phase: 'Explore', label: 'provenance' })
+  if (provenance && !(await agent(`Add these lines to the project's provenance log in one edit, keeping its format:\n${provenance}`, { phase: 'Explore', label: 'provenance' }))) pendingProvenance = provenance
 }
 
 phase('Do')
-const built = await agent(`Refine identity direction ${chosen.index} for ${product} (directions in ${plan.design_dir}/directions/). Rationale and fixes: ${chosen.rationale}\nFollow the graphic-designer visual-identity skill steps 4-8 (logo system, palette with roles and light/dark values, type scale, icon and imagery style, real applications), then the brand-guidelines skill: write the tokens file first, then the guidelines from it, using brand-guidelines/checklist.md. Log every font and image in the provenance log (design-licensing). Then the docs: Classify every user-visible change in this work with the Diataxis compass (action/cognition x study/work). For each, update or add exactly one page of that kind under docs/<kind>/, keep each page to one kind, title it by the project pattern, and link to the related pages of the other kinds. Planned pages: ${JSON.stringify(plan.doc_pages)}. Report files, tokens file, guidelines path, pages touched and anything left undocumented and why.`, { schema: BUILT, phase: 'Do', label: 'build' })
+const built = await agent(`Refine identity direction ${chosen.index} for ${product} (directions in ${plan.design_dir}/directions/). Rationale and fixes: ${chosen.rationale}\nFollow the graphic-designer visual-identity skill steps 4-8 (logo system, palette with roles and light/dark values, type scale, icon and imagery style, real applications), then the brand-guidelines skill: write the tokens file first, then the guidelines from it, using brand-guidelines/checklist.md. Log every font and image in the provenance log (design-licensing).${pendingProvenance ? ' Also add these direction provenance lines, which were not logged yet:\n' + pendingProvenance + '\n' : ''} Then the docs: Classify every user-visible change in this work with the Diataxis compass (action/cognition x study/work). For each, update or add exactly one page of that kind under docs/<kind>/, keep each page to one kind, title it by the project pattern, and link to the related pages of the other kinds. Planned pages: ${JSON.stringify(plan.doc_pages)}. Report files, tokens file, guidelines path, pages touched and anything left undocumented and why.`, { schema: BUILT, phase: 'Do', label: 'build' })
 if (!built) return 'blocked: building the identity system failed'
 
 phase('Check')
