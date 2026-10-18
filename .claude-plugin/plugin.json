@@ -1,14 +1,22 @@
 {
   "name": "graphic-designer",
   "version": "0.1.0",
-  "description": "Graphic designer: owns visual identity and 2D design: logo, colour and type, app icons, store and marketing art, UI visual design and website visuals.",
+  "description": "Graphic designer role: visual identity (logo system, colour, type, iconography, brand guidelines), app icons and store/marketing art to each store's current specs, UI visual design handed to the UI developer, and website visuals handed to the front-end web developer. 2D only.",
   "author": {
     "name": "opsroller"
   },
   "repository": "https://github.com/opsroller/graphic-designer",
-  "license": "MIT",
+  "license": "GPL-2.0-or-later",
   "keywords": [
     "role",
-    "job-function"
+    "job-function",
+    "graphic-design",
+    "visual-identity",
+    "branding",
+    "iconography",
+    "app-icons",
+    "store-assets",
+    "ui-design",
+    "accessibility"
   ]
 }
