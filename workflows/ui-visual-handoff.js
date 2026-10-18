@@ -6,7 +6,8 @@ export const meta = {
     { title: 'Plan', detail: 'tokens and components audit, missing components, doc kinds via the compass' },
     { title: 'Do', detail: 'shared components first, then screens in parallel into separate files' },
     { title: 'Check', detail: 'contrast, states, sizes, tokens only; fix loop' },
-    { title: 'Handoff', detail: 'package, token changelog and Diataxis pages' },
+    { title: 'Package', detail: 'handoff package, token changelog and Diataxis pages' },
+    { title: 'Handoff', detail: 'commit and push on a feature branch, run the checks, return a handoff for deliver-package or land-pr' },
   ],
 }
 
@@ -153,13 +154,41 @@ for (let round = 1; round <= 3; round++) {
 }
 if (open.length || failed.length) return { status: 'blocked', open, failed_screens: failed, missing_components: missing, outputs: results }
 
-phase('Handoff')
+phase('Package')
 const prov = results.map(r => (r.provenance_lines || []).join('\n')).filter(Boolean).join('\n')
-const hand = await agent(`As the single editor of shared files: add these provenance lines in one edit:\n${prov || '(none)'}\nAssemble the handoff package for the ${receiver} per the ${skill} skill handoff section (tokens file and changelog, component specs, screen specs, assets, intent notes) in ${plan.out_dir}, with an index file. Then: Classify every user-visible change in this work with the Diataxis compass (action/cognition x study/work). For each, update or add exactly one page of that kind under docs/<kind>/, keep each page to one kind, title it by the project pattern, and link to the related pages of the other kinds. Planned: ${JSON.stringify(plan.doc_pages)}. Check each touched page holds one kind only. Report the package index path, pages touched, and anything left undocumented and why.`, { schema: HAND, phase: 'Handoff', label: 'handoff' })
-if (!hand) return { status: 'blocked', reason: 'handoff and docs step failed', outputs: results }
+const pkg = await agent(`As the single editor of shared files: add these provenance lines in one edit:\n${prov || '(none)'}\nAssemble the handoff package for the ${receiver} per the ${skill} skill handoff section (tokens file and changelog, component specs, screen specs, assets, intent notes) in ${plan.out_dir}, with an index file. Then: Classify every user-visible change in this work with the Diataxis compass (action/cognition x study/work). For each, update or add exactly one page of that kind under docs/<kind>/, keep each page to one kind, title it by the project pattern, and link to the related pages of the other kinds. Planned: ${JSON.stringify(plan.doc_pages)}. Check each touched page holds one kind only. Report the package index path, pages touched, and anything left undocumented and why.`, { schema: HAND, phase: 'Package', label: 'package' })
+if (!pkg) return { status: 'blocked', reason: 'handoff package and docs step failed', outputs: results }
 const DOCCHECK = { type: 'object', properties: { problems: { type: 'array', items: { type: 'string' } } }, required: ['problems'] }
-const docCheck = await agent(`Independently check these docs pages against the project's Diataxis guide review checklist: each page holds one kind only, how-to titles name a user goal, explanation titles read with "About", reference matches sibling format, links connect the kinds. Pages: ${JSON.stringify(hand.pages)}. Fix nothing; list problems.`, { schema: DOCCHECK, phase: 'Handoff', label: 'docs-check', independent: true })
+const docCheck = await agent(`Independently check these docs pages against the project's Diataxis guide review checklist: each page holds one kind only, how-to titles name a user goal, explanation titles read with "About", reference matches sibling format, links connect the kinds. Pages: ${JSON.stringify(pkg.pages)}. Fix nothing; list problems.`, { schema: DOCCHECK, phase: 'Package', label: 'docs-check', independent: true })
 const docProblems = docCheck ? docCheck.problems : ['docs check did not run; docs unverified']
-if (docProblems.length) return { status: 'blocked', doc_problems: docProblems, handoff: hand, outputs: results }
-return { status: 'ready', receiver, handoff: hand, missing_components: missing, outputs: results }
+if (docProblems.length) return { status: 'blocked', doc_problems: docProblems, handoff: pkg, outputs: results }
+
+// The handoff is what engineering-practices deliver-package takes as prior, so the
+// designs ship without being built again; it keeps the package fields it held before.
+phase('Handoff')
+const HANDOFF = { type: 'object', properties: { branch: { type: 'string' }, pr: { type: 'string' }, head_sha: { type: 'string' }, tests_pass: { type: 'boolean' }, problem: { type: 'string' } }, required: ['branch', 'tests_pass'] }
+const hand = await agent(
+  `Hand off the ${surface} designs for ${screens.join(', ')}. If you are on the default branch, cut a Conventional branch (feat/<slug>) from the latest remote default branch; otherwise stay on the current feature branch. Commit every file this run wrote (the screen folders under ${plan.out_dir}/, the tokens file ${plan.tokens_file} and its changelog, the component library ${plan.library}, the handoff package ${pkg.package}, the provenance log and the docs pages ${(pkg.pages || []).join(', ') || 'as written'}) as Conventional Commits, and push. Run the project's checks that apply (its validator, tests, and the docs or link checks the profile names) on the pushed head. Do not open, mark ready or merge a PR: the engineering-practices workflow named in the result does that. Follow the engineering-practices git-workflow skill. Return the branch, any open PR, the head commit SHA, whether the checks pass on that head, and the problem if not.`,
+  { schema: HANDOFF, phase: 'Handoff', label: 'handoff' },
+)
+if (!hand || !hand.branch) return { status: 'blocked', open: [{ screen: 'all', issue: hand && hand.problem ? hand.problem : 'handoff step returned nothing; the designs may be uncommitted' }], failed_screens: failed, missing_components: missing, outputs: results }
+if (!hand.tests_pass) return { status: 'blocked', open: [{ screen: 'all', issue: `checks fail on ${hand.branch}${hand.head_sha ? ' at ' + hand.head_sha : ''}: ${hand.problem || 'no details'}` }], failed_screens: failed, missing_components: missing, outputs: results }
+return {
+  status: 'ready',
+  receiver,
+  handoff: {
+    ...pkg,
+    from: 'graphic-designer:ui-visual-handoff',
+    branch: hand.branch,
+    pr: hand.pr || '',
+    head_sha: hand.head_sha || '',
+    tests_pass: true,
+    docs: pkg.pages || [],
+    undocumented: pkg.undocumented || [],
+    notes: [`handoff package for the ${receiver}: ${pkg.package}`].concat(missing.length ? [`missing components reported: ${missing.join(', ')}`] : []),
+  },
+  missing_components: missing,
+  outputs: results,
+  next: 'ship it without rebuilding: /engineering-practices:deliver-package { wp: "<the package>", prior: <this result> }; with no work package, /engineering-practices:land-pr { branch: "' + hand.branch + '" }',
+}
 })(RUN.agent, RUN.phase, RUN.log)]); return RUN.finish(RUN_OUT)

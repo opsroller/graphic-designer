@@ -7,6 +7,7 @@ export const meta = {
     { title: 'Do', detail: 'one agent per store, separate output folders' },
     { title: 'Check', detail: 'spec, content rules, family consistency; fix loop' },
     { title: 'Docs', detail: 'manifests, provenance and Diataxis pages in one pass' },
+    { title: 'Handoff', detail: 'commit and push on a feature branch, run the checks, return a handoff for deliver-package or land-pr' },
   ],
 }
 
@@ -166,5 +167,31 @@ const docCheck = docs ? await agent(`Independently check these docs pages agains
 const docProblems = docCheck ? docCheck.problems : ['docs check did not run; docs unverified']
 
 const status = (docProblems.length || open.length || failed.length || unverified.length || !docs) ? 'blocked' : 'ready'
-return { status, open, failed_stores: failed, unverified_specs: unverified, docs: docs || 'docs step failed', doc_problems: docProblems, outputs: results }
+const result = { status, open, failed_stores: failed, unverified_specs: unverified, docs: docs || 'docs step failed', doc_problems: docProblems, outputs: results }
+if (status === 'blocked') return result
+
+// The handoff is what engineering-practices deliver-package takes as
+// prior, so the batch ships without being built again.
+phase('Handoff')
+const HANDOFF = { type: 'object', properties: { branch: { type: 'string' }, pr: { type: 'string' }, head_sha: { type: 'string' }, tests_pass: { type: 'boolean' }, problem: { type: 'string' } }, required: ['branch', 'tests_pass'] }
+const hand = await agent(
+  `Hand off the store art batch for ${stores.join(', ')}. If you are on the default branch, cut a Conventional branch (feat/<slug>) from the latest remote default branch; otherwise stay on the current feature branch. Commit every file this run wrote (the store folders under ${plan.out_dir}/, any export scripts, the spec table ${plan.spec_table}, the per-store manifests, the provenance log and the docs pages ${(docs.pages || []).join(', ') || 'as written'}) as Conventional Commits, and push. Run the project's checks that apply (its validator, tests, and the docs or link checks the profile names) on the pushed head. Do not open, mark ready or merge a PR: the engineering-practices workflow named in the result does that. Follow the engineering-practices git-workflow skill. Return the branch, any open PR, the head commit SHA, whether the checks pass on that head, and the problem if not.`,
+  { schema: HANDOFF, phase: 'Handoff', label: 'handoff' },
+)
+if (!hand || !hand.branch) return { ...result, status: 'blocked', open: [{ store: 'all', issue: hand && hand.problem ? hand.problem : 'handoff step returned nothing; the batch may be uncommitted' }] }
+if (!hand.tests_pass) return { ...result, status: 'blocked', open: [{ store: 'all', issue: `checks fail on ${hand.branch}${hand.head_sha ? ' at ' + hand.head_sha : ''}: ${hand.problem || 'no details'}` }] }
+return {
+  ...result,
+  handoff: {
+    from: 'graphic-designer:store-art-batch',
+    branch: hand.branch,
+    pr: hand.pr || '',
+    head_sha: hand.head_sha || '',
+    tests_pass: true,
+    docs: docs.pages || [],
+    undocumented: docs.undocumented || [],
+    notes: [`store art for ${stores.join(', ')}; specs verified against each store's official documentation; provenance recorded in the project's provenance log`],
+  },
+  next: 'ship it without rebuilding: /engineering-practices:deliver-package { wp: "<the package>", prior: <this result> }; with no work package, /engineering-practices:land-pr { branch: "' + hand.branch + '" }',
+}
 })(RUN.agent, RUN.phase, RUN.log)]); return RUN.finish(RUN_OUT)

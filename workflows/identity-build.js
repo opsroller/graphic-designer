@@ -7,6 +7,7 @@ export const meta = {
     { title: 'Explore', detail: 'three distinct directions in parallel, separate files' },
     { title: 'Do', detail: 'logo system, palette, type, icon style, guidelines, tokens, docs' },
     { title: 'Check', detail: 'contrast, small size, licences, docs one kind per page; fix loop' },
+    { title: 'Handoff', detail: 'commit and push on a feature branch, run the checks, return a handoff for deliver-package or land-pr' },
   ],
 }
 
@@ -162,5 +163,31 @@ for (let round = 1; round <= 3; round++) {
   await agent(`Fix these blocking findings in the ${product} identity and its docs, keeping tokens and guidelines in sync:\n- ${open.join('\n- ')}`, { phase: 'Check', label: `fix:${round}` })
 }
 if (open.length) return { status: 'blocked', open, built }
-return { status: 'ready', direction: chosen, built }
+
+// The handoff is what engineering-practices deliver-package takes as
+// prior, so the identity ships without being built again.
+phase('Handoff')
+const HANDOFF = { type: 'object', properties: { branch: { type: 'string' }, pr: { type: 'string' }, head_sha: { type: 'string' }, tests_pass: { type: 'boolean' }, problem: { type: 'string' } }, required: ['branch', 'tests_pass'] }
+const hand = await agent(
+  `Hand off the ${product} identity. If you are on the default branch, cut a Conventional branch (feat/<slug>) from the latest remote default branch; otherwise stay on the current feature branch. Commit every file this run wrote (the directions in ${plan.design_dir}/directions/, the identity files ${built.files.join(', ')}, the tokens file ${built.tokens_file}, the guidelines ${built.guidelines}, the provenance log and the docs pages ${(built.docs_touched || []).join(', ') || 'as written'}) as Conventional Commits, and push. Run the project's checks that apply (its validator, tests, and the docs or link checks the profile names) on the pushed head. Do not open, mark ready or merge a PR: the engineering-practices workflow named in the result does that. Follow the engineering-practices git-workflow skill. Return the branch, any open PR, the head commit SHA, whether the checks pass on that head, and the problem if not.`,
+  { schema: HANDOFF, phase: 'Handoff', label: 'handoff' },
+)
+if (!hand || !hand.branch) return { status: 'blocked', open: [hand && hand.problem ? hand.problem : 'handoff step returned nothing; the identity may be uncommitted'], built }
+if (!hand.tests_pass) return { status: 'blocked', open: [`checks fail on ${hand.branch}${hand.head_sha ? ' at ' + hand.head_sha : ''}: ${hand.problem || 'no details'}`], built }
+return {
+  status: 'ready',
+  direction: chosen,
+  built,
+  handoff: {
+    from: 'graphic-designer:identity-build',
+    branch: hand.branch,
+    pr: hand.pr || '',
+    head_sha: hand.head_sha || '',
+    tests_pass: true,
+    docs: built.docs_touched || [],
+    undocumented: built.undocumented || [],
+    notes: ['fonts and images recorded in the project\'s provenance log'],
+  },
+  next: 'ship it without rebuilding: /engineering-practices:deliver-package { wp: "<the package>", prior: <this result> }; with no work package, /engineering-practices:land-pr { branch: "' + hand.branch + '" }',
+}
 })(RUN.agent, RUN.phase, RUN.log)]); return RUN.finish(RUN_OUT)
