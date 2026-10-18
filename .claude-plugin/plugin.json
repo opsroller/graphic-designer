@@ -1,0 +1,14 @@
+{
+  "name": "graphic-designer",
+  "version": "0.1.0",
+  "description": "Graphic designer: owns visual identity and 2D design: logo, colour and type, app icons, store and marketing art, UI visual design and website visuals.",
+  "author": {
+    "name": "opsroller"
+  },
+  "repository": "https://github.com/opsroller/graphic-designer",
+  "license": "MIT",
+  "keywords": [
+    "role",
+    "job-function"
+  ]
+}
