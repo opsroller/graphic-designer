@@ -41,6 +41,14 @@ For localised screenshots and captions:
 - `failed_stores`: the producing agent crashed; rerun with just those
   stores.
 
+## Ship it
+
+For a work package, ship it without rebuilding: pass the whole result as
+`prior` to engineering-practices deliver-package
+(`/engineering-practices:deliver-package { wp: "<the package>", prior: <the result> }`).
+With no work package, land `handoff.branch` with engineering-practices
+land-pr. `next` in the result gives both commands.
+
 ## Hand over for upload
 
 Give the per-store manifests to the DevOps engineer, who uploads.

@@ -28,12 +28,22 @@ Missing or invalid required arguments return a usage string.
 | Explore | Three directions in parallel, each in `directions/<n>/`; one reviewer picks; one agent adds provenance lines |
 | Do | Logo system, palette, type, icon style, tokens file, guidelines, docs |
 | Check | Independent review (contrast, small size, licences, guidelines checklist, docs one kind per page); up to two fix rounds |
+| Handoff | Commits everything the run wrote on a feature branch, pushes, runs the project's checks on the pushed head. Never opens or merges a PR. |
 
 ## Output
 
-`{ status: "ready", direction, built: { files, tokens_file, guidelines, docs_touched, undocumented } }` or `{ status: "blocked", open, built }`, or a `blocked: ...` string when a step fails.
+`{ status: "ready", direction, built: { files, tokens_file, guidelines, docs_touched, undocumented }, handoff, next }` or `{ status: "blocked", open, built }` (also when the handoff step returns no branch or the checks fail on the pushed head), or a `blocked: ...` string when a step fails.
 
 Parallel agents never edit shared files; a single agent applies manifests, provenance lines and docs. A failed checker leaves items unverified and the result blocked.
+
+## Handoff
+
+`handoff` is the object engineering-practices
+[deliver-package](https://github.com/opsroller/engineering-practices/blob/main/docs/reference/workflow-deliver-package.md)
+takes as `prior`, so pass the whole result and the identity ships without
+being built again: `from` (`graphic-designer:identity-build`), `branch`, `pr`,
+`head_sha`, `tests_pass`, `docs`, `undocumented`, `notes`. With no
+work package, land the branch with land-pr instead; `next` names both.
 
 ## Related
 
@@ -48,6 +58,6 @@ Run modes v2. Besides its own args, the workflow takes the optional `run` arg de
 and `run.from` with `run.results` resumes a stopped run. Without `run`, the workflow and its outputs are as above.
 See [how to run a workflow inline](https://github.com/opsroller/engineering-practices/blob/main/docs/how-to/how-to-run-a-workflow-inline.md).
 
-Step labels, for `run.only` and `run.results`: `brief`, `direction:<n>`, `choose`, `provenance`, `build`, `review:<round>`, `fix:<round>`.
+Step labels, for `run.only` and `run.results`: `brief`, `direction:<n>`, `choose`, `provenance`, `build`, `review:<round>`, `fix:<round>`, `handoff`.
 
 Independent steps: `review:<round>`. They review work this run produced, so in inline mode send each to a reviewer with no part in the work and name them in `run.reviewers`; a step you answer yourself is reported in `self_reviewed`.

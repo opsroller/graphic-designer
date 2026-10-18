@@ -31,7 +31,16 @@ For website pages:
 A package index in the design output folder linking: the tokens file and
 its changelog, component specs with every state, screen specs at each size,
 exported assets, and an intent note per screen. Docs pages are updated in
-the same change.
+the same change, and everything is committed and pushed on a feature
+branch, named in `handoff.branch`.
+
+## Ship it
+
+For a work package, ship it without rebuilding: pass the whole result as
+`prior` to engineering-practices deliver-package
+(`/engineering-practices:deliver-package { wp: "<the package>", prior: <the result> }`).
+With no work package, land `handoff.branch` with engineering-practices
+land-pr. `next` in the result gives both commands.
 
 ## If it is blocked
 

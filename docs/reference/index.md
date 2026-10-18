@@ -52,7 +52,7 @@ Across all work:
 | Field | Value |
 |---|---|
 | `name` | `graphic-designer` |
-| `version` | `0.3.0` |
+| `version` | `0.4.0` |
 | `author.name` | `opsroller` |
 | `repository` | `https://github.com/opsroller/graphic-designer` |
 | `license` | `GPL-2.0-or-later` |

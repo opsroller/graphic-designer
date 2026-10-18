@@ -44,9 +44,18 @@ exploration and refines that direction:
 
 ## Read the result
 
-- `status: "ready"`: guidelines, tokens file and docs are in place.
+- `status: "ready"`: guidelines, tokens file and docs are committed and
+  pushed on a feature branch, named in `handoff.branch`.
 - `status: "blocked"`: the `open` list names what still fails (contrast,
   small-size legibility, licences, docs). Fix them or rerun.
+
+## Ship it
+
+For a work package, ship it without rebuilding: pass the whole result as
+`prior` to engineering-practices deliver-package
+(`/engineering-practices:deliver-package { wp: "<the package>", prior: <the result> }`).
+With no work package, land `handoff.branch` with engineering-practices
+land-pr. `next` in the result gives both commands.
 
 ## Hand it on
 
