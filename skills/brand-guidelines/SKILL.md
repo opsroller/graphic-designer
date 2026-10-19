@@ -1,6 +1,6 @@
 ---
 name: brand-guidelines
-description: Use when documenting an identity so others can apply it: the brand guidelines (style guide) with logo rules, colour specs, type scale, iconography and imagery rules, do/don't examples, and a design-tokens file developers consume directly.
+description: 'Use when documenting an identity so others can apply it: the brand guidelines (style guide) with logo rules, colour specs, type scale, iconography and imagery rules, do/don''t examples, and a design-tokens file developers consume directly.'
 ---
 
 # Brand guidelines
