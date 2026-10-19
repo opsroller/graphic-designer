@@ -1,6 +1,6 @@
 ---
 name: visual-identity
-description: Use when creating, refreshing or extending a product's visual identity: brief, research, logo system, palette, typography and imagery style. Produces the identity that brand-guidelines then documents.
+description: 'Use when creating, refreshing or extending a product''s visual identity: brief, research, logo system, palette, typography and imagery style. Produces the identity that brand-guidelines then documents.'
 ---
 
 # Visual identity

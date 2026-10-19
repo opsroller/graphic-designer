@@ -1,6 +1,6 @@
 ---
 name: design-licensing
-description: Use before using any font, image, icon, texture, mockup or third-party mark in design work, and when delivering the identity: checks the licence covers every intended use, records it in the provenance log, and avoids trademark conflicts.
+description: 'Use before using any font, image, icon, texture, mockup or third-party mark in design work, and when delivering the identity: checks the licence covers every intended use, records it in the provenance log, and avoids trademark conflicts.'
 ---
 
 # Design licensing
